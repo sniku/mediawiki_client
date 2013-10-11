@@ -190,6 +190,10 @@ class MediaWikiInteractiveCommands(Cmd):
     def postloop(self):
         print
 
-if __name__ == '__main__':
+def run():
     m = MediaWikiInteractiveCommands()
     a = m.cmdloop()
+
+
+if __name__ == '__main__':
+    run()

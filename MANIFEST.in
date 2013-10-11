@@ -1,0 +1,5 @@
+include setup.py
+include wiki_client
+include mediawiki_client/__init__.py
+include mediawiki_client/settings.py
+include mediawiki_client/wiki_client.py

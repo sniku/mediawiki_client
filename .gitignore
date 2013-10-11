@@ -37,3 +37,6 @@ nosetests.xml
 
 # settings
 local_settings.py
+
+# editors
+.idea

@@ -19,7 +19,6 @@ class MediaWikiEditor(object):
     def open_article(self, initial_content):
 
         edited_content = ''
-
         with tempfile.NamedTemporaryFile(suffix=".tmp", delete=False) as tmpfile:
             tmpfile.write(initial_content)
             tmpfile.flush()
@@ -42,6 +41,7 @@ class MediaWikiBrowser(object):
 
     def __init__(self):
         self.twill_browser = twill.get_browser()
+        twill.browser.OUT = open('/dev/null', 'w')
 
         # Handle HTTP authentication
         if settings.HTTP_AUTH_USERNAME and settings.HTTP_AUTH_PASSWORD:
@@ -73,8 +73,8 @@ class MediaWikiBrowser(object):
         content = self.twill_browser.get_form_field(form, 'wpTextbox1')._value
         return content
 
-
-    def _parse_search_results(self, html):
+    @staticmethod
+    def _parse_search_results(html):
         soup = BeautifulSoup(html)
 
         container = soup.find('ul', attrs={'class': 'mw-search-results'})
@@ -94,9 +94,9 @@ class MediaWikiBrowser(object):
                 span.replaceWith('   \033[92m'+span.text+'\033[0m   ')
 
             rendered_match = u''.join(match.contents)
-            rendered_match = re.sub("\s\s+" , " ", rendered_match)
+            rendered_match = re.sub("\s\s+", " ", rendered_match)
 
-            hit = {'index': index, 'title': title, 'match': rendered_match, 'url': url}
+            hit = {'what': 'search_result', 'index': index, 'title': title, 'match': rendered_match, 'url': url}
             results.append(hit)
 
         return results
@@ -105,8 +105,15 @@ class MediaWikiBrowser(object):
     def search(self, keyword):
         url = urlparse.urljoin(settings.MEDIAWIKI_URL, '/index.php?go=Go&search='+urllib.quote_plus(keyword) )
         html = self.openurl(url)
-        search_results = self._parse_search_results(html)
-        return search_results
+
+        if "search=" in self.twill_browser.result.url:
+            # we are on the search page
+            search_results = self._parse_search_results(html)
+            return search_results
+        else:
+            # perfect match - redirected to the page
+            return [{'what': 'perfect_match'}]
+
 
 
 class MediaWikiInteractiveCommands(Cmd):
@@ -136,8 +143,13 @@ class MediaWikiInteractiveCommands(Cmd):
         if not self.last_search_results:
             print u'No results for "%s"'% self.last_search_query
         else:
-            for result in self.last_search_results:
-                print result['index'], result['title'], '\n\t', result['match']
+            # directly display the page
+            if len(self.last_search_results) == 1 and self.last_search_results[0]['what'] == 'perfect_match':
+                print 'Opening', self.last_search_query
+                self.do_go(self.last_search_query)
+            else:
+                for result in self.last_search_results:
+                    print result['index'], result['title'], '\n\t', result['match']
 
     def do_go(self, page_name):
         """ go to specified page """
@@ -163,7 +175,7 @@ class MediaWikiInteractiveCommands(Cmd):
         except IndexError:
             print 'Wrong index - try again'
         else:
-            print 'Displaying', hit['title']
+            print 'Opening', hit['title']
 
             url = urlparse.urljoin(settings.MEDIAWIKI_URL, '/index.php?action=edit&title=' + urllib.quote_plus(hit['title']) )
             self.display_article(url)

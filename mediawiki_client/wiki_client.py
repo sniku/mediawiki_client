@@ -91,7 +91,7 @@ class MediaWikiBrowser(object):
 
             match = li.find('div', {'class': 'searchresult'})
             for span in match.findAll('span'):
-                span.replaceWith('   \033[92m'+span.text+'\033[0m   ')
+                span.replaceWith('   \033[92m'+span.text+'\033[0m   ')  # make it green
 
             rendered_match = u''.join(match.contents)
             rendered_match = re.sub("\s\s+", " ", rendered_match)
@@ -100,7 +100,6 @@ class MediaWikiBrowser(object):
             results.append(hit)
 
         return results
-
 
     def search(self, keyword):
         url = urlparse.urljoin(settings.MEDIAWIKI_URL, '/index.php?go=Go&search='+urllib.quote_plus(keyword) )
@@ -112,7 +111,8 @@ class MediaWikiBrowser(object):
             return search_results
         else:
             # perfect match - redirected to the page
-            return [{'what': 'perfect_match'}]
+            # page name can have different capitalization
+            return [{'what': 'perfect_match', 'page_name': self.twill_browser.result.url.rsplit('/', 1)[1]}]
 
 
 
@@ -141,12 +141,12 @@ class MediaWikiInteractiveCommands(Cmd):
     def display_search_list(self):
         """ Display the last search result """
         if not self.last_search_results:
-            print u'No results for "%s"'% self.last_search_query
+            print u'No results for "%s"' % self.last_search_query
         else:
             # directly display the page
             if len(self.last_search_results) == 1 and self.last_search_results[0]['what'] == 'perfect_match':
                 print 'Opening', self.last_search_query
-                self.do_go(self.last_search_query)
+                self.do_go(self.last_search_results[0]['page_name'])
             else:
                 for result in self.last_search_results:
                     print result['index'], result['title'], '\n\t', result['match']

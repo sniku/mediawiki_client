@@ -10,23 +10,23 @@ I find it much more convenient to use **go my_commands** or **search IP** as sho
 
 #### Installation ####
 
- cd mediawiki_client
- python setup.py install
+    cd mediawiki_client
+    python setup.py install
 
 #### Configuration ####
 
- cat ~/.config/wiki_client.conf
+    cat ~/.config/wiki_client.conf
+    
+    [defaults]
+    # This is the only required config directive
+    MEDIAWIKI_URL: http://mywiki.example.net/
+    
+    # force an editor. Otherwise your default editor will be used.
+    FORCE_EDITOR: vim
 
- [defaults]
- # This is the only required config directive
- MEDIAWIKI_URL: http://mywiki.example.net/
-
- # force an editor. Otherwise your default editor will be used.
- FORCE_EDITOR: vim
-
- # This is only required if your wiki installation is behind a HTTP auth.
- HTTP_AUTH_USERNAME: myuser
- HTTP_AUTH_PASSWORD: mypassword
+    # This is only required if your wiki installation is behind a HTTP auth.
+    HTTP_AUTH_USERNAME: myuser
+    HTTP_AUTH_PASSWORD: mypassword
 
 #### Opening and editing a note
 

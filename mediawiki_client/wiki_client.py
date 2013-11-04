@@ -8,11 +8,39 @@ import os
 from subprocess import call
 import urllib
 import urlparse
-import settings
 import tempfile
 import twill
+import ConfigParser
+from os.path import expanduser
 
-EDITOR = settings.FORCE_EDITOR or os.environ.get('EDITOR', 'vim')
+CONFIG_FILE = expanduser('~/.config/wiki_client.conf')
+
+class Settings(dict):
+    def __init__(self):
+        super(Settings, self).__init__()
+        if self.check_config_file():
+            self.read_config()
+            self.validate_settings()
+
+    def read_config(self):
+        config = ConfigParser.ConfigParser()
+        config.read(CONFIG_FILE)
+        options = config.options('defaults')
+        for option in options:
+            self[option] = config.get('defaults', option)
+
+        self['editor'] = self.get('force_editor', None) or os.environ.get('EDITOR', 'vim')
+
+    def check_config_file(self):
+        if not os.path.isfile(CONFIG_FILE):
+            raise Exception(u'Config file %s is missing.'%CONFIG_FILE)
+        return True
+
+    def validate_settings(self):
+        if not self.get('mediawiki_url', None):
+            raise Exception(u"Config directive 'mediawiki_url' is empty of missing. You must provide URL to your mediawiki installation")
+
+settings = Settings()
 
 class MediaWikiEditor(object):
 
@@ -22,14 +50,13 @@ class MediaWikiEditor(object):
         with tempfile.NamedTemporaryFile(suffix=".tmp", delete=False) as tmpfile:
             tmpfile.write(initial_content)
             tmpfile.flush()
-            call([EDITOR, tmpfile.name])
+            call([settings['editor'], tmpfile.name])
             tmpfile.flush()
             tmpfile.close()
 
             edited_file = open(tmpfile.name)
             edited_content = edited_file.read()
             edited_file.close()
-
 
         return edited_content, initial_content
 
@@ -44,12 +71,12 @@ class MediaWikiBrowser(object):
         twill.browser.OUT = open('/dev/null', 'w')
 
         # Handle HTTP authentication
-        if settings.HTTP_AUTH_USERNAME and settings.HTTP_AUTH_PASSWORD:
-            base64string = base64.encodestring('%s:%s' % (settings.HTTP_AUTH_USERNAME, settings.HTTP_AUTH_PASSWORD)).replace('\n', '')
+        if settings.get('http_auth_username', None) and settings.get('http_auth_password', None):
+            base64string = base64.encodestring('%s:%s' % (settings['http_auth_username'], settings['http_auth_password'])).replace('\n', '')
             #twill_browser.addheaders( ("Authorization", "Basic %s" % base64string) )
             self.twill_browser._browser.addheaders += [("Authorization", "Basic %s" % base64string)]
 
-        self.twill_browser.go(settings.MEDIAWIKI_URL)
+        self.twill_browser.go(settings['mediawiki_url'])
 
     def save_article(self, url, new_content):
         self.twill_browser.go(url)
@@ -102,7 +129,7 @@ class MediaWikiBrowser(object):
         return results
 
     def search(self, keyword):
-        url = urlparse.urljoin(settings.MEDIAWIKI_URL, '/index.php?go=Go&search='+urllib.quote_plus(keyword) )
+        url = urlparse.urljoin(settings['mediawiki_url'], '/index.php?go=Go&search='+urllib.quote_plus(keyword) )
         html = self.openurl(url)
 
         if "search=" in self.twill_browser.result.url:
@@ -153,7 +180,7 @@ class MediaWikiInteractiveCommands(Cmd):
 
     def do_go(self, page_name):
         """ go to specified page """
-        url = urlparse.urljoin(settings.MEDIAWIKI_URL, '/index.php?action=edit&title=' + urllib.quote_plus(page_name) )
+        url = urlparse.urljoin(settings['mediawiki_url'], '/index.php?action=edit&title=' + urllib.quote_plus(page_name) )
         self.display_article(url)
 
     def display_article(self, url):
@@ -177,7 +204,7 @@ class MediaWikiInteractiveCommands(Cmd):
         else:
             print 'Opening', hit['title']
 
-            url = urlparse.urljoin(settings.MEDIAWIKI_URL, '/index.php?action=edit&title=' + urllib.quote_plus(hit['title']) )
+            url = urlparse.urljoin(settings['mediawiki_url'], '/index.php?action=edit&title=' + urllib.quote_plus(hit['title']) )
             self.display_article(url)
 
     def do_EOF(self, line):

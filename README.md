@@ -8,6 +8,25 @@ I have a mediawiki installation on personal server for storing various notes, ra
 While standard web-interface is functional, you have to launch a browser and it takes numerous clicks to find anything. 
 I find it much more convenient to use **go my_commands** or **search IP** as shown below:
 
+#### Installation ####
+
+ cd mediawiki_client
+ python setup.py install
+
+#### Configuration ####
+
+ cat ~/.config/wiki_client.conf
+
+ [defaults]
+ # This is the only required config directive
+ MEDIAWIKI_URL: http://mywiki.example.net/
+
+ # force an editor. Otherwise your default editor will be used.
+ FORCE_EDITOR: vim
+
+ # This is only required if your wiki installation is behind a HTTP auth.
+ HTTP_AUTH_USERNAME: myuser
+ HTTP_AUTH_PASSWORD: mypassword
 
 #### Opening and editing a note
 

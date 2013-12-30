@@ -25,11 +25,15 @@ class Settings(dict):
             self.validate_settings()
 
     def read_config(self):
+        booleans = ['verbose']
         config = ConfigParser.ConfigParser()
         config.read(CONFIG_FILE)
         options = config.options('defaults')
         for option in options:
-            self[option] = config.get('defaults', option)
+            if option in booleans:
+                self[option] = config.getboolean('defaults', option)
+            else:
+                self[option] = config.get('defaults', option)
 
         self['editor'] = self.get('force_editor', None) or os.environ.get('EDITOR', 'vim')
 
@@ -70,13 +74,24 @@ class MediaWikiBrowser(object):
 
     def __init__(self):
         self.twill_browser = twill.get_browser()
-        twill.browser.OUT = open('/dev/null', 'w')
+
+        if not settings.get('verbose', True):
+            twill.browser.OUT = open('/dev/null', 'w')
 
         # Handle HTTP authentication
         if settings.get('http_auth_username', None) and settings.get('http_auth_password', None):
             base64string = base64.encodestring('%s:%s' % (settings['http_auth_username'], settings['http_auth_password'])).replace('\n', '')
-            #twill_browser.addheaders( ("Authorization", "Basic %s" % base64string) )
             self.twill_browser._browser.addheaders += [("Authorization", "Basic %s" % base64string)]
+
+        # Handle Mediawiki authentication
+        if settings.get('wiki_username', None) and settings.get('wiki_password', None):
+            login_url = urlparse.urljoin(settings['mediawiki_url'], '/index.php?title=Special:UserLogin')
+            self.twill_browser.go(login_url)
+            self.twill_browser._browser.select_form('userlogin')
+
+            twill.commands.formvalue('userlogin', 'wpName', settings.get('wiki_username'))
+            twill.commands.formvalue('userlogin', 'wpPassword', settings.get('wiki_password'))
+            self.twill_browser.submit()
 
         self.twill_browser.go(settings['mediawiki_url'])
 

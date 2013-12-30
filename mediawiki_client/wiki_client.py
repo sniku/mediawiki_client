@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
-from BeautifulSoup import BeautifulSoup
 import base64
 from cmd import Cmd
+import sys
 import re
 import os
 from subprocess import call
@@ -10,8 +10,10 @@ import urllib
 import urlparse
 import tempfile
 import twill
-import ConfigParser
 from os.path import expanduser
+import ConfigParser
+from BeautifulSoup import BeautifulSoup
+
 
 CONFIG_FILE = expanduser('~/.config/wiki_client.conf')
 
@@ -229,10 +231,18 @@ class MediaWikiInteractiveCommands(Cmd):
     def postloop(self):
         print
 
-def run():
+def run(args):
+
     m = MediaWikiInteractiveCommands()
+
+    # if there is one argument, we assume it's an article_name to open
+    if len(args) == 2:
+        m.do_go(args[1])
+
+    # and go to interactive mode
     a = m.cmdloop()
 
 
 if __name__ == '__main__':
-    run()
+    import sys
+    run(sys.argv)

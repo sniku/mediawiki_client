@@ -1,5 +1,4 @@
 #!/usr/bin/python
-
+import sys
 import mediawiki_client.wiki_client
-
-mediawiki_client.wiki_client.run()
+mediawiki_client.wiki_client.run(sys.argv)

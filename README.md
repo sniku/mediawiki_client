@@ -14,26 +14,41 @@ I find it much more convenient to use **go my_commands** or **search IP** as sho
     python setup.py install
 
 #### Configuration ####
-
+    
     cat ~/.config/wiki_client.conf
     
     [defaults]
-    # This is the only required config directive
+    # This is the only required config directive, all the others are optional.
     MEDIAWIKI_URL: http://mywiki.example.net/
     
     # force an editor. Otherwise your default editor will be used.
     FORCE_EDITOR: vim
-
-    # This is only required if your wiki installation is behind a HTTP auth.
-    HTTP_AUTH_USERNAME: myuser
-    HTTP_AUTH_PASSWORD: mypassword
+    
+    # This is only required if you want to edit articles as a logged in user. (You have to create an account first)
+    MEDIAWIKI_USERNAME: wikiuser
+    MEDIAWIKI_PASSWORD: wikipassword
+    
+    # This is only required if your wiki installation is behind an additional HTTP auth.
+    HTTP_AUTH_USERNAME: httpauth_user
+    HTTP_AUTH_PASSWORD: httpauth_password
+    
+    # If you want to have less messages in the interactive mode.
+    VERBOSE: false
 
 #### Opening and editing a note
+    
+This goes to interactive mode:
 
     $ wiki_client
      Wiki command: go my_commands 
      Opening "my_commands" # at this point your default editor is opened with the content of "my_commands"
      Saving "my_commands"
+
+This is a quicker way of going the same:
+
+    $ wiki_client my_commands
+
+
      
 #### Searching for a note
 

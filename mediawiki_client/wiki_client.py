@@ -84,13 +84,13 @@ class MediaWikiBrowser(object):
             self.twill_browser._browser.addheaders += [("Authorization", "Basic %s" % base64string)]
 
         # Handle Mediawiki authentication
-        if settings.get('wiki_username', None) and settings.get('wiki_password', None):
+        if settings.get('mediawiki_username', None) and settings.get('mediawiki_password', None):
             login_url = urlparse.urljoin(settings['mediawiki_url'], '/index.php?title=Special:UserLogin')
             self.twill_browser.go(login_url)
             self.twill_browser._browser.select_form('userlogin')
 
-            twill.commands.formvalue('userlogin', 'wpName', settings.get('wiki_username'))
-            twill.commands.formvalue('userlogin', 'wpPassword', settings.get('wiki_password'))
+            twill.commands.formvalue('userlogin', 'wpName', settings.get('mediawiki_username'))
+            twill.commands.formvalue('userlogin', 'wpPassword', settings.get('mediawiki_password'))
             self.twill_browser.submit()
 
         self.twill_browser.go(settings['mediawiki_url'])

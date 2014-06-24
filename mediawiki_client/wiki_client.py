@@ -53,7 +53,7 @@ class MediaWikiEditor(object):
     def open_article(self, initial_content):
 
         edited_content = ''
-        with tempfile.NamedTemporaryFile(suffix=".tmp", delete=False) as tmpfile:
+        with tempfile.NamedTemporaryFile(suffix=".tmp.wiki", delete=False) as tmpfile:
             tmpfile.write(initial_content)
             tmpfile.flush()
             call([settings['editor'], tmpfile.name])

@@ -13,7 +13,7 @@ import twill
 from os.path import expanduser
 import ConfigParser
 from BeautifulSoup import BeautifulSoup
-
+import warnings
 
 CONFIG_FILE = expanduser('~/.config/wiki_client.conf')
 
@@ -81,40 +81,59 @@ class MediaWikiBrowser(object):
         # Handle HTTP authentication
         if settings.get('http_auth_username', None) and settings.get('http_auth_password', None):
             base64string = base64.encodestring('%s:%s' % (settings['http_auth_username'], settings['http_auth_password'])).replace('\n', '')
-            self.twill_browser._browser.addheaders += [("Authorization", "Basic %s" % base64string)]
+            self.twill_browser._session.headers.update([("Authorization", "Basic %s" % base64string)])
 
         # Handle Mediawiki authentication
         if settings.get('mediawiki_username', None) and settings.get('mediawiki_password', None):
             login_url = urlparse.urljoin(settings['mediawiki_url'], '/index.php?title=Special:UserLogin')
-            self.twill_browser.go(login_url)
-            self.twill_browser._browser.select_form('userlogin')
+            self.openurl(login_url)
+            # twill.commands.select_form('userlogin')
+            form = self.twill_browser.get_form('userlogin')
 
             twill.commands.formvalue('userlogin', 'wpName', settings.get('mediawiki_username'))
+            form.fields['wpName'] = settings.get('mediawiki_username')
             twill.commands.formvalue('userlogin', 'wpPassword', settings.get('mediawiki_password'))
+            form.fields['wpPassword'] = settings.get('mediawiki_password')
             self.twill_browser.submit()
 
-        self.twill_browser.go(settings['mediawiki_url'])
+        self.openurl(settings['mediawiki_url'])
+
+    #@deprecated
+    def add_auth(self, url):
+        '''
+        Handle HTTP authentication
+        '''
+        base64string = base64.encodestring('%s:%s' % (settings['http_auth_username'], settings['http_auth_password'])).replace('\n', '')
+        self.twill_browser._session.headers.update([("Authorization", "Basic %s" % base64string)])
+
+        if settings.get('http_auth_username', None) and settings.get('http_auth_password', None):
+            self.twill_browser._set_creds( (url, (settings['http_auth_username'], settings['http_auth_password'])) )
+
 
     def save_article(self, url, new_content):
-        self.twill_browser.go(url)
-        self.twill_browser._browser.select_form('editform')
+        self.openurl(url)
 
+        # for some unknown to me reason this doesn't set the form field
+        # but at least it selects the form
         twill.commands.formvalue('editform', 'wpTextbox1', new_content)
 
-        self.twill_browser.submit()
+        # this on the other hand sets the form field
+        form = self.twill_browser.get_form('editform')
+        form.fields['wpTextbox1'] = new_content
 
-        #TODO: validate settings and print error messages
+        self.twill_browser.submit("wpSave")
 
     def openurl(self, url):
+        # self.add_auth(url)
         self.twill_browser.go(url)
-        return self.twill_browser.result.page
+        return self.twill_browser.result.get_page()
 
 
     def get_page_content(self, url):
-        self.twill_browser.go(url)
+        self.openurl(url)
 
         form = self.twill_browser.get_form('editform')
-        content = self.twill_browser.get_form_field(form, 'wpTextbox1')._value
+        content = self.twill_browser.get_form_field(form, 'wpTextbox1').value
         return content
 
     @staticmethod
@@ -149,7 +168,7 @@ class MediaWikiBrowser(object):
         url = urlparse.urljoin(settings['mediawiki_url'], '/index.php?go=Go&search='+urllib.quote_plus(keyword) )
         html = self.openurl(url)
 
-        if "search=" in self.twill_browser.result.url:
+        if "search=" in self.twill_browser.result.get_url():
             # we are on the search page
             search_results = self._parse_search_results(html)
             return search_results

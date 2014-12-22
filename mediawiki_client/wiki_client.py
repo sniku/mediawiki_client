@@ -52,6 +52,7 @@ class MediaWikiEditor(object):
 
     def open_article(self, initial_content):
 
+        initial_content = initial_content.encode("utf-8")
         edited_content = ''
         with tempfile.NamedTemporaryFile(suffix=".tmp.wiki", delete=False) as tmpfile:
             tmpfile.write(initial_content)
@@ -119,7 +120,7 @@ class MediaWikiBrowser(object):
 
         # this on the other hand sets the form field
         form = self.twill_browser.get_form('editform')
-        form.fields['wpTextbox1'] = new_content
+        form.fields['wpTextbox1'] = new_content.decode("utf-8")
 
         self.twill_browser.submit("wpSave")
 
@@ -175,7 +176,7 @@ class MediaWikiBrowser(object):
         else:
             # perfect match - redirected to the page
             # page name can have different capitalization
-            return [{'what': 'perfect_match', 'page_name': self.twill_browser.result.url.rsplit('/', 1)[1]}]
+            return [{'what': 'perfect_match', 'page_name': self.twill_browser.result.get_url().rsplit('/', 1)[1]}]
 
 
 

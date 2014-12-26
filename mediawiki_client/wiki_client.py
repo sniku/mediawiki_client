@@ -14,6 +14,7 @@ from os.path import expanduser
 import ConfigParser
 from BeautifulSoup import BeautifulSoup
 import warnings
+from twill.commands import add_auth as twill_add_auth, add_extra_header
 
 CONFIG_FILE = expanduser('~/.config/wiki_client.conf')
 
@@ -82,7 +83,10 @@ class MediaWikiBrowser(object):
         # Handle HTTP authentication
         if settings.get('http_auth_username', None) and settings.get('http_auth_password', None):
             base64string = base64.encodestring('%s:%s' % (settings['http_auth_username'], settings['http_auth_password'])).replace('\n', '')
-            self.twill_browser._session.headers.update([("Authorization", "Basic %s" % base64string)])
+            twill_add_auth("wiki", settings['mediawiki_url'], settings['http_auth_username'], settings['http_auth_password'])
+            # import pdb; pdb.set_trace()
+            #self.twill_browser._session.headers.update([("Authorization", "Basic %s" % base64string)])
+            add_extra_header("Authorization", "Basic %s" % base64string) 
 
         # Handle Mediawiki authentication
         if settings.get('mediawiki_username', None) and settings.get('mediawiki_password', None):
@@ -92,9 +96,10 @@ class MediaWikiBrowser(object):
             form = self.twill_browser.get_form('userlogin')
 
             twill.commands.formvalue('userlogin', 'wpName', settings.get('mediawiki_username'))
-            form.fields['wpName'] = settings.get('mediawiki_username')
+            # import pdb; pdb.set_trace()
+            #form.fields['wpName'] = settings.get('mediawiki_username')
             twill.commands.formvalue('userlogin', 'wpPassword', settings.get('mediawiki_password'))
-            form.fields['wpPassword'] = settings.get('mediawiki_password')
+            #form.fields['wpPassword'] = settings.get('mediawiki_password')
             self.twill_browser.submit()
 
         self.openurl(settings['mediawiki_url'])
@@ -119,8 +124,8 @@ class MediaWikiBrowser(object):
         twill.commands.formvalue('editform', 'wpTextbox1', new_content)
 
         # this on the other hand sets the form field
-        form = self.twill_browser.get_form('editform')
-        form.fields['wpTextbox1'] = new_content.decode("utf-8")
+        # form = self.twill_browser.get_form('editform')
+        # form.fields['wpTextbox1'] = new_content.decode("utf-8")
 
         self.twill_browser.submit("wpSave")
 

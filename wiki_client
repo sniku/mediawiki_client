@@ -1,4 +1,20 @@
 #!/usr/bin/python
+
+"""Mediawiki terminal client.
+Usage:
+  wiki_client
+  wiki_client [go] <article_name>
+  wiki_client [go] <article_name> < stdin_file.txt
+  wiki_client append <article_name> <text>
+  wiki_client --help
+"""
+
+VERSION = "0.4"
+
 import sys
 import mediawiki_client.wiki_client
-mediawiki_client.wiki_client.run(sys.argv)
+from docopt import docopt
+
+if __name__ == "__main__":
+    args = docopt(__doc__, version='Mediawiki client ' + VERSION)
+    mediawiki_client.wiki_client.run(args)

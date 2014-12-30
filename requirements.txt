@@ -1,0 +1,5 @@
+docopt
+BeautifulSoup
+
+# Version: 0.9-3 from debian repo works best. New version in PIP is broken
+twill==0.9

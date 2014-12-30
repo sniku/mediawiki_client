@@ -78,7 +78,8 @@ class MediaWikiBrowser(object):
         self.twill_browser = twill.get_browser()
 
         if not settings.get('verbose', True):
-            twill.browser.OUT = open('/dev/null', 'w')
+            twill.set_output(open(os.devnull, 'w'))
+            #twill.browser.OUT = open(os.devnull, 'w')
 
         # Handle HTTP authentication
         if settings.get('http_auth_username', None) and settings.get('http_auth_password', None):
@@ -119,13 +120,13 @@ class MediaWikiBrowser(object):
     def save_article(self, url, new_content):
         self.openurl(url)
 
-        # for some unknown to me reason this doesn't set the form field
+        # for some unknown to me reason this doesn't set the form field in new twill
         # but at least it selects the form
         twill.commands.formvalue('editform', 'wpTextbox1', new_content)
 
-        # this on the other hand sets the form field
-        # form = self.twill_browser.get_form('editform')
-        # form.fields['wpTextbox1'] = new_content.decode("utf-8")
+        # this on the other hand sets the form field in new twill but fails in old one (!?)
+        form = self.twill_browser.get_form('editform')
+        form.fields['wpTextbox1'] = new_content.decode("utf-8")
 
         self.twill_browser.submit("wpSave")
 
@@ -234,6 +235,20 @@ class MediaWikiInteractiveCommands(Cmd):
         if old_content != new_content:
             self.browser.save_article(url, new_content)
 
+    def append_to_article_and_save(self, page_name, text_to_append):
+        url = urlparse.urljoin(settings['mediawiki_url'], '/index.php?action=edit&title=' + urllib.quote_plus(page_name) )
+        page_content = self.browser.get_page_content(url)
+        page_content += text_to_append
+        self.browser.save_article(url, page_content)
+
+    def append_to_article_and_open(self, page_name, text_to_append):
+        url = urlparse.urljoin(settings['mediawiki_url'], '/index.php?action=edit&title=' + urllib.quote_plus(page_name) )
+        page_content = self.browser.get_page_content(url)
+        page_content += text_to_append
+
+        new_content, old_content = self.editor.open_article(page_content)
+ 
+        self.browser.save_article(url, new_content)
 
 
     def do_display_search_result(self, index):
@@ -272,17 +287,36 @@ class MediaWikiInteractiveCommands(Cmd):
         print
 
 def run(args):
-
     m = MediaWikiInteractiveCommands()
+    stdin_data = None
+    if not sys.stdin.isatty():
+        stdin_data = sys.stdin.read()
 
-    # if there is one argument, we assume it's an article_name to open
-    if len(args) == 2:
-        m.do_go(args[1])
+        tty = open('/dev/tty', 'r')
+        os.dup2(tty.fileno(), 0)
+
+
+    if args['<article_name>']:
+        if args['append']:
+            if args['<text>']:
+                # append text to extisting article and save
+                m.append_to_article_and_save(args['<article_name>'], args['<text>'])
+        elif stdin_data is not None and args['<article_name>']:
+            m.append_to_article_and_open(args['<article_name>'], stdin_data)
+        else:
+            # just open article
+            m.do_go(args['<article_name>'])
 
     # and go to interactive mode
     a = m.cmdloop()
 
+    print "the end"
+
 
 if __name__ == '__main__':
     import sys
-    run(sys.argv)
+    try:
+        run(sys.argv)
+    except:
+        import pdb
+        pdb.set_trace()

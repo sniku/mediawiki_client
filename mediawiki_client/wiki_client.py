@@ -93,17 +93,29 @@ class MediaWikiBrowser(object):
         if settings.get('mediawiki_username', None) and settings.get('mediawiki_password', None):
             login_url = urlparse.urljoin(settings['mediawiki_url'], '/index.php?title=Special:UserLogin')
             self.openurl(login_url)
-            # twill.commands.select_form('userlogin')
-            form = self.twill_browser.get_form('userlogin')
 
-            twill.commands.formvalue('userlogin', 'wpName', settings.get('mediawiki_username'))
-            # import pdb; pdb.set_trace()
-            #form.fields['wpName'] = settings.get('mediawiki_username')
-            twill.commands.formvalue('userlogin', 'wpPassword', settings.get('mediawiki_password'))
-            #form.fields['wpPassword'] = settings.get('mediawiki_password')
+            self._set_form_value('userlogin', 'wpName', settings.get('mediawiki_username'))
+            self._set_form_value('userlogin', 'wpPassword', settings.get('mediawiki_password'))
+
             self.twill_browser.submit()
 
         self.openurl(settings['mediawiki_url'])
+
+    def _set_form_value(self, formname, fieldname, fieldvalue):
+        """
+        This is a workaround for a bug in twill
+        """
+
+        # for some unknown to me reason this doesn't set the form field in new twill
+        # but at least it selects the form
+        twill.commands.formvalue(formname, fieldname, fieldvalue)
+
+        form = self.twill_browser.get_form(formname)
+
+        # this on the other hand sets the form field in new twill but fails in old one (!?)
+        if hasattr(form, 'fields'):
+            form.fields[fieldname] = fieldvalue
+
 
     #@deprecated
     def add_auth(self, url):
@@ -120,13 +132,7 @@ class MediaWikiBrowser(object):
     def save_article(self, url, new_content):
         self.openurl(url)
 
-        # for some unknown to me reason this doesn't set the form field in new twill
-        # but at least it selects the form
-        twill.commands.formvalue('editform', 'wpTextbox1', new_content)
-
-        # this on the other hand sets the form field in new twill but fails in old one (!?)
-        form = self.twill_browser.get_form('editform')
-        form.fields['wpTextbox1'] = new_content.decode("utf-8")
+        self._set_form_value('editform', 'wpTextbox1', new_content)
 
         self.twill_browser.submit("wpSave")
 

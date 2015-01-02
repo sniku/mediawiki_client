@@ -239,22 +239,22 @@ class MediaWikiInteractiveCommands(Cmd):
         new_content, old_content = self.editor.open_article(page)
 
         if old_content != new_content:
-            self.browser.save_article(url, new_content)
+            self.browser.save_article(url, new_content.decode('utf8'))
 
     def append_to_article_and_save(self, page_name, text_to_append):
         url = urlparse.urljoin(settings['mediawiki_url'], '/index.php?action=edit&title=' + urllib.quote_plus(page_name) )
         page_content = self.browser.get_page_content(url)
-        page_content += text_to_append
+        page_content += text_to_append.decode("utf8")
         self.browser.save_article(url, page_content)
 
     def append_to_article_and_open(self, page_name, text_to_append):
         url = urlparse.urljoin(settings['mediawiki_url'], '/index.php?action=edit&title=' + urllib.quote_plus(page_name) )
         page_content = self.browser.get_page_content(url)
-        page_content += text_to_append
+        page_content += text_to_append.decode("utf8")
 
         new_content, old_content = self.editor.open_article(page_content)
  
-        self.browser.save_article(url, new_content)
+        self.browser.save_article(url, new_content.decode("utf8"))
 
 
     def do_display_search_result(self, index):

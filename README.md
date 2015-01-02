@@ -10,6 +10,9 @@ I find it much more convenient to use **go my_commands** or **search IP** as sho
 
 #### Installation ####
 
+    # install twill from the official source. Version in debian/ubuntu repo is broken. New version in pip is buggy.
+    pip install http://darcs.idyll.org/~t/projects/twill-0.9.tar.gz
+    # install mediawiki_client
     cd mediawiki_client
     python setup.py install
 

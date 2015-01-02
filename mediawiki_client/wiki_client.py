@@ -53,18 +53,21 @@ class MediaWikiEditor(object):
 
     def open_article(self, initial_content):
 
-        initial_content = initial_content.encode("utf-8")
-        edited_content = ''
+        assert(type(initial_content) == unicode)
+
+        edited_content = u''
         with tempfile.NamedTemporaryFile(suffix=".tmp.wiki", delete=False) as tmpfile:
-            tmpfile.write(initial_content)
+            tmpfile.write(initial_content.encode('utf8'))
             tmpfile.flush()
             call([settings['editor'], tmpfile.name])
             tmpfile.flush()
             tmpfile.close()
 
             edited_file = open(tmpfile.name)
-            edited_content = edited_file.read()
+            edited_content = edited_file.read().decode('utf8')
             edited_file.close()
+
+            os.unlink(tmpfile.name) 
 
         return edited_content, initial_content
 
@@ -119,9 +122,9 @@ class MediaWikiBrowser(object):
 
     #@deprecated
     def add_auth(self, url):
-        '''
+        """
         Handle HTTP authentication
-        '''
+        """
         base64string = base64.encodestring('%s:%s' % (settings['http_auth_username'], settings['http_auth_password'])).replace('\n', '')
         self.twill_browser._session.headers.update([("Authorization", "Basic %s" % base64string)])
 
@@ -130,6 +133,9 @@ class MediaWikiBrowser(object):
 
 
     def save_article(self, url, new_content):
+
+        new_content = new_content.encode("utf8")
+
         self.openurl(url)
 
         self._set_form_value('editform', 'wpTextbox1', new_content)
@@ -147,6 +153,12 @@ class MediaWikiBrowser(object):
 
         form = self.twill_browser.get_form('editform')
         content = self.twill_browser.get_form_field(form, 'wpTextbox1').value
+
+        if type(content) == str:
+            content = content.decode("utf-8")
+
+        assert( type(content) == unicode )
+
         return content
 
     @staticmethod
@@ -235,26 +247,29 @@ class MediaWikiInteractiveCommands(Cmd):
     def display_article(self, url):
         """ Display the last search result """
         page = self.browser.get_page_content(url)
-        # print page
         new_content, old_content = self.editor.open_article(page)
 
         if old_content != new_content:
-            self.browser.save_article(url, new_content.decode('utf8'))
+            self.browser.save_article(url, new_content)
 
     def append_to_article_and_save(self, page_name, text_to_append):
+
+        assert( type(text_to_append) == unicode )
+
         url = urlparse.urljoin(settings['mediawiki_url'], '/index.php?action=edit&title=' + urllib.quote_plus(page_name) )
         page_content = self.browser.get_page_content(url)
-        page_content += text_to_append.decode("utf8")
+        page_content += text_to_append.strip()
         self.browser.save_article(url, page_content)
 
     def append_to_article_and_open(self, page_name, text_to_append):
+
+        assert( type(text_to_append) == unicode )
+
         url = urlparse.urljoin(settings['mediawiki_url'], '/index.php?action=edit&title=' + urllib.quote_plus(page_name) )
         page_content = self.browser.get_page_content(url)
-        page_content += text_to_append.decode("utf8")
-
+        page_content += text_to_append.strip()
         new_content, old_content = self.editor.open_article(page_content)
- 
-        self.browser.save_article(url, new_content.decode("utf8"))
+        self.browser.save_article(url, new_content)
 
 
     def do_display_search_result(self, index):
@@ -306,8 +321,10 @@ def run(args):
         if args['append']:
             if args['<text>']:
                 # append text to extisting article and save
-                m.append_to_article_and_save(args['<article_name>'], args['<text>'])
+                text_to_append = args['<text>'].decode('utf8')
+                m.append_to_article_and_save(args['<article_name>'], text_to_append)
         elif stdin_data is not None and args['<article_name>']:
+            stdin_data = stdin_data.decode('utf8')
             m.append_to_article_and_open(args['<article_name>'], stdin_data)
         else:
             # just open article
@@ -316,7 +333,6 @@ def run(args):
     # and go to interactive mode
     a = m.cmdloop()
 
-    print "the end"
 
 
 if __name__ == '__main__':

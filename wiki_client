@@ -6,6 +6,7 @@ Usage:
   wiki_client [go] <article_name>
   wiki_client [go] <article_name> < stdin_file.txt
   wiki_client append <article_name> <text>
+  wiki_client upload <filepath> [<alt_filename>]
   wiki_client --help
 """
 

@@ -2,19 +2,19 @@
 
 import base64
 from cmd import Cmd
-import sys
 import re
 import os
-from subprocess import call
+import sys
+
+from subprocess import call, Popen, PIPE
 import urllib
 import urlparse
 import tempfile
-import twill
 from os.path import expanduser
 import ConfigParser
 from BeautifulSoup import BeautifulSoup
-import warnings
-from twill.commands import add_auth as twill_add_auth, add_extra_header
+import twill.commands
+import twill
 
 CONFIG_FILE = expanduser('~/.config/wiki_client.conf')
 
@@ -87,10 +87,9 @@ class MediaWikiBrowser(object):
         # Handle HTTP authentication
         if settings.get('http_auth_username', None) and settings.get('http_auth_password', None):
             base64string = base64.encodestring('%s:%s' % (settings['http_auth_username'], settings['http_auth_password'])).replace('\n', '')
-            twill_add_auth("wiki", settings['mediawiki_url'], settings['http_auth_username'], settings['http_auth_password'])
-            # import pdb; pdb.set_trace()
+            twill.commands.add_auth("wiki", settings['mediawiki_url'], settings['http_auth_username'], settings['http_auth_password'])
             #self.twill_browser._session.headers.update([("Authorization", "Basic %s" % base64string)])
-            add_extra_header("Authorization", "Basic %s" % base64string) 
+            twill.commands.add_extra_header("Authorization", "Basic %s" % base64string)
 
         # Handle Mediawiki authentication
         if settings.get('mediawiki_username', None) and settings.get('mediawiki_password', None):
@@ -161,6 +160,27 @@ class MediaWikiBrowser(object):
 
         return content
 
+
+    def upload_file(self, filepath, alt_filename):
+        UPLOAD_FORM_URL = '/index.php/Special:Upload'
+        FORM_ID = 'mw-upload-form'
+        self.openurl(UPLOAD_FORM_URL)
+        form = self.twill_browser.get_form(FORM_ID)
+        self._set_form_value(FORM_ID, 'wpIgnoreWarning', '1')
+        filename = alt_filename or os.path.split(filepath)[1]
+        twill.commands.formfile(FORM_ID, 'wpUploadFile', filepath)
+        self._set_form_value(FORM_ID, 'wpDestFile', filename)
+        self._set_form_value(FORM_ID, 'wpUploadDescription', "uploaded with mediawiki_client")
+
+        self.twill_browser.submit("wpUpload")
+
+        html = self.twill_browser.result.get_page()
+        soup = BeautifulSoup(html)
+        div = soup.find('div', attrs={'class': 'fullMedia'})
+        a = div.find('a')
+        url_to_uploaded_asset = urlparse.urljoin(settings['mediawiki_url'], a['href'])
+        return url_to_uploaded_asset
+
     @staticmethod
     def _parse_search_results(html):
         soup = BeautifulSoup(html)
@@ -188,6 +208,19 @@ class MediaWikiBrowser(object):
             results.append(hit)
 
         return results
+
+    @staticmethod
+    def paste_to_clipboard(content, p=True, c=True):
+        """
+        puts the "content" into clipboard.
+        """
+        if p:
+            p = Popen(['xsel', '-pi'], stdin=PIPE)
+            p.communicate(input=content)
+        if c:
+            p = Popen(['xsel', '-bi'], stdin=PIPE)
+            p.communicate(input=content)
+
 
     def search(self, keyword):
         url = urlparse.urljoin(settings['mediawiki_url'], '/index.php?go=Go&search='+urllib.quote_plus(keyword) )
@@ -261,6 +294,7 @@ class MediaWikiInteractiveCommands(Cmd):
         page_content += text_to_append.strip()
         self.browser.save_article(url, page_content)
 
+
     def append_to_article_and_open(self, page_name, text_to_append):
 
         assert( type(text_to_append) == unicode )
@@ -270,6 +304,15 @@ class MediaWikiInteractiveCommands(Cmd):
         page_content += text_to_append.strip()
         new_content, old_content = self.editor.open_article(page_content)
         self.browser.save_article(url, new_content)
+
+    def do_upload_file(self, filepath, alt_filename):
+        filepath = os.path.abspath(filepath)
+        if not os.path.exists(filepath):
+            print(u"File path \"{}\" doesn't exist - nothing uploaded".format(filepath))
+        else:
+            file_url = self.browser.upload_file(filepath, alt_filename)
+            print u"Uploaded file: {}".format(file_url)
+            self.browser.paste_to_clipboard(file_url)
 
 
     def do_display_search_result(self, index):
@@ -329,6 +372,8 @@ def run(args):
         else:
             # just open article
             m.do_go(args['<article_name>'])
+    elif args['upload']:
+            m.do_upload_file(args['<filepath>'], args['<alt_filename>'])
 
     # and go to interactive mode
     a = m.cmdloop()
@@ -336,7 +381,6 @@ def run(args):
 
 
 if __name__ == '__main__':
-    import sys
     try:
         run(sys.argv)
     except:

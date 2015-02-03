@@ -51,12 +51,14 @@ settings = Settings()
 
 class MediaWikiEditor(object):
 
-    def open_article(self, initial_content):
+    def open_article(self, initial_content, title=""):
 
         assert(type(initial_content) == unicode)
+        prefix = (title or "tmp") + "__["
+
 
         edited_content = u''
-        with tempfile.NamedTemporaryFile(suffix=".tmp.wiki", delete=False) as tmpfile:
+        with tempfile.NamedTemporaryFile(prefix=prefix, suffix="].tmp.wiki", delete=False,) as tmpfile:
             tmpfile.write(initial_content.encode('utf8'))
             tmpfile.flush()
             call([settings['editor'], tmpfile.name])
@@ -144,8 +146,21 @@ class MediaWikiBrowser(object):
     def openurl(self, url):
         # self.add_auth(url)
         self.twill_browser.go(url)
-        return self.twill_browser.result.get_page()
+        content = self.twill_browser.result.get_page()
+        return content
 
+
+
+    def is_redirect(self, content):
+        """
+        checks if this page redirects to somewhere else
+        """
+        if content.startswith("#REDIRECT"):
+            s = re.findall(r"\#REDIRECT \[\[(.*?)\]\]", content)
+            if s:
+                print "Redirecting to {}".format(s[0])
+                return True, s[0]
+        return False, None
 
     def get_page_content(self, url):
         self.openurl(url)
@@ -157,6 +172,13 @@ class MediaWikiBrowser(object):
             content = content.decode("utf-8")
 
         assert( type(content) == unicode )
+
+
+        need_redirect, where = self.is_redirect(content)
+
+        if need_redirect:
+            new_url = urlparse.urljoin(settings['mediawiki_url'], '/index.php?action=edit&title=' + urllib.quote_plus(where) )
+            return self.get_page_content(new_url)
 
         return content
 
@@ -275,12 +297,12 @@ class MediaWikiInteractiveCommands(Cmd):
     def do_go(self, page_name):
         """ go to specified page """
         url = urlparse.urljoin(settings['mediawiki_url'], '/index.php?action=edit&title=' + urllib.quote_plus(page_name) )
-        self.display_article(url)
+        self.display_article(url, page_name)
 
-    def display_article(self, url):
+    def display_article(self, url, title=""):
         """ Display the last search result """
         page = self.browser.get_page_content(url)
-        new_content, old_content = self.editor.open_article(page)
+        new_content, old_content = self.editor.open_article(page, title)
 
         if old_content != new_content:
             self.browser.save_article(url, new_content)
@@ -302,7 +324,7 @@ class MediaWikiInteractiveCommands(Cmd):
         url = urlparse.urljoin(settings['mediawiki_url'], '/index.php?action=edit&title=' + urllib.quote_plus(page_name) )
         page_content = self.browser.get_page_content(url)
         page_content += text_to_append.strip()
-        new_content, old_content = self.editor.open_article(page_content)
+        new_content, old_content = self.editor.open_article(page_content, page_name)
         self.browser.save_article(url, new_content)
 
     def do_upload_file(self, filepath, alt_filename):
@@ -326,7 +348,7 @@ class MediaWikiInteractiveCommands(Cmd):
             print 'Opening', hit['title']
 
             url = urlparse.urljoin(settings['mediawiki_url'], '/index.php?action=edit&title=' + urllib.quote_plus(hit['title']) )
-            self.display_article(url)
+            self.display_article(url, hit['title'])
 
     def do_EOF(self, line):
         """ quit """

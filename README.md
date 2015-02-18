@@ -48,6 +48,16 @@ MOst common use case is to open specific article for editing or viewing
 Ar this point article "my_article" will be opened in your text editor.
 If article doesn't exits, it will be created.
 
+#### Usage:
+
+    
+    wiki_client
+    wiki_client [go] <article_name>
+    wiki_client [go] <article_name> < stdin_file.txt
+    wiki_client append <article_name> <text>
+    wiki_client upload <filepath> [<alt_filename>]
+    wiki_client --help
+
 
 #### Interactive mode
     
@@ -95,7 +105,7 @@ It's great for integrating with other programs. You can run this for example in 
 
 There's alternative version if you want to append text from a text file:
 
-    $ wiki_command append my_article < ~/path/to/some_file.txt
+    $ wiki_command my_article < ~/path/to/some_file.txt
     
 
 

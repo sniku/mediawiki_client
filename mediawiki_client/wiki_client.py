@@ -61,7 +61,9 @@ class MediaWikiEditor(object):
         with tempfile.NamedTemporaryFile(prefix=prefix, suffix="].tmp.wiki", delete=False,) as tmpfile:
             tmpfile.write(initial_content.encode('utf8'))
             tmpfile.flush()
-            call([settings['editor'], tmpfile.name])
+            editor_with_args = settings['editor'].split(" ")  + [tmpfile.name]
+            print editor_with_args
+            call(editor_with_args)
             tmpfile.flush()
             tmpfile.close()
 
@@ -148,8 +150,6 @@ class MediaWikiBrowser(object):
         self.twill_browser.go(url)
         content = self.twill_browser.result.get_page()
         return content
-
-
 
     def is_redirect(self, content):
         """
@@ -274,7 +274,7 @@ class MediaWikiInteractiveCommands(Cmd):
 
 
     def do_search(self, keyword, quiet=False):
-        """ Search for the keyword """
+        """ Search for a keyword """
         self.last_search_query = keyword
         self.last_search_results = self.browser.search(self.last_search_query )
         if not quiet:
@@ -295,7 +295,7 @@ class MediaWikiInteractiveCommands(Cmd):
                     print result['index'], result['title'], '\n\t', result['match']
 
     def do_go(self, page_name):
-        """ go to specified page """
+        """ go to a specified page. Type "go <pagetitle>" """
         url = urlparse.urljoin(settings['mediawiki_url'], '/index.php?action=edit&title=' + urllib.quote_plus(page_name) )
         self.display_article(url, page_name)
 

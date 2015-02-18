@@ -87,7 +87,7 @@ By default mediawiki requires you to log-in before you can upload a file so fill
 
 #### Quick edits
 
-This is the a quick way to appending short text to the end of your article:
+This is the a quick way to append short text to the end of your article:
 
     $ wiki_command append my_article "some text here"
     

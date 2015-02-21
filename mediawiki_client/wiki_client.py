@@ -54,6 +54,9 @@ class MediaWikiEditor(object):
     def open_article(self, initial_content, title=""):
 
         assert(type(initial_content) == unicode)
+
+        if title: # sanitize for security
+            title = "".join(x for x in title if x.isalnum())
         prefix = (title or "tmp") + "__["
 
 
@@ -62,7 +65,7 @@ class MediaWikiEditor(object):
             tmpfile.write(initial_content.encode('utf8'))
             tmpfile.flush()
             editor_with_args = settings['editor'].split(" ")  + [tmpfile.name]
-            print editor_with_args
+            # print editor_with_args
             call(editor_with_args)
             tmpfile.flush()
             tmpfile.close()
@@ -316,6 +319,14 @@ class MediaWikiInteractiveCommands(Cmd):
         page_content += text_to_append.strip()
         self.browser.save_article(url, page_content)
 
+    def cat(self, page_name):
+        """
+        simply print the content of the article
+        """
+        url = urlparse.urljoin(settings['mediawiki_url'], '/index.php?action=edit&title=' + urllib.quote_plus(page_name) )
+        page_content = self.browser.get_page_content(url)
+        print page_content
+
 
     def append_to_article_and_open(self, page_name, text_to_append):
 
@@ -375,6 +386,8 @@ class MediaWikiInteractiveCommands(Cmd):
 def run(args):
     m = MediaWikiInteractiveCommands()
     stdin_data = None
+    interactive = False
+
     if not sys.stdin.isatty():
         stdin_data = sys.stdin.read()
 
@@ -388,17 +401,24 @@ def run(args):
                 # append text to extisting article and save
                 text_to_append = args['<text>'].decode('utf8')
                 m.append_to_article_and_save(args['<article_name>'], text_to_append)
-        elif stdin_data is not None and args['<article_name>']:
+        elif stdin_data is not None:
             stdin_data = stdin_data.decode('utf8')
             m.append_to_article_and_open(args['<article_name>'], stdin_data)
+        elif args['cat']:
+            m.cat(args['<article_name>'])
+        elif args['<article_name>'][0] == "/": # search
+            m.do_search(args['<article_name>'][1:])
+            interactive = True
         else:
             # just open article
             m.do_go(args['<article_name>'])
+            interactive = True
     elif args['upload']:
             m.do_upload_file(args['<filepath>'], args['<alt_filename>'])
 
-    # and go to interactive mode
-    a = m.cmdloop()
+    if interactive:
+        # and go to interactive mode
+        a = m.cmdloop()
 
 
 

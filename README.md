@@ -25,6 +25,7 @@ I find it much more convenient to use **go my_commands** or **search IP** as sho
     MEDIAWIKI_URL: http://mywiki.example.net/
     
     # force an editor. Otherwise your default editor will be used.
+    # I use vim, but you can use gedit or "gvim --nofork" or whatever you like.
     FORCE_EDITOR: vim
     
     # This is only required if you want to edit articles as a logged in user. (You have to create an account first)
@@ -38,7 +39,27 @@ I find it much more convenient to use **go my_commands** or **search IP** as sho
     # If you want to have less messages in the interactive mode.
     VERBOSE: false
 
-#### Opening and editing a note
+#### Most common use case
+
+MOst common use case is to open specific article for editing or viewing
+
+    $ wiki_client my_article
+    
+Ar this point article "my_article" will be opened in your text editor.
+If article doesn't exits, it will be created.
+
+#### Usage:
+
+    
+    wiki_client
+    wiki_client [go] <article_name>
+    wiki_client [go] <article_name> < stdin_file.txt
+    wiki_client append <article_name> <text>
+    wiki_client upload <filepath> [<alt_filename>]
+    wiki_client --help
+
+
+#### Interactive mode
     
 This goes to interactive mode:
 
@@ -46,10 +67,6 @@ This goes to interactive mode:
      Wiki command: go my_commands 
      Opening "my_commands" # at this point your default editor is opened with the content of "my_commands"
      Saving "my_commands"
-
-This is a quicker way of going the same:
-
-    $ wiki_client my_commands
 
 
      
@@ -71,3 +88,25 @@ This is a quicker way of going the same:
      
     Wiki command: 3
     Opening "Network" # opens content of "Network" in your default editor
+
+#### Uploading a file
+
+By default mediawiki requires you to log-in before you can upload a file so fill in your username and password in the config file first. 
+    
+    $ wiki_client upload ~/path/to/file.txt
+
+#### Quick edits
+
+This is the a quick way to append short text to the end of your article:
+
+    $ wiki_command append my_article "some text here"
+    
+It's great for integrating with other programs. You can run this for example in cron.
+
+There's alternative version if you want to append text from a text file:
+
+    $ wiki_command my_article < ~/path/to/some_file.txt
+    
+
+
+    

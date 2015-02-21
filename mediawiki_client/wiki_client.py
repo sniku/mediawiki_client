@@ -5,6 +5,7 @@ from cmd import Cmd
 import re
 import os
 import sys
+import datetime
 
 from subprocess import call, Popen, PIPE
 import urllib
@@ -164,6 +165,17 @@ class MediaWikiBrowser(object):
                 print "Redirecting to {}".format(s[0])
                 return True, s[0]
         return False, None
+
+    def rename_article(self, current_name, new_name, leave_redirect):
+
+        url = urlparse.urljoin(settings['mediawiki_url'], '/index.php/Special:MovePage/' + urllib.quote_plus(current_name) )
+        self.openurl(url)
+        self._set_form_value('movepage', "wpNewTitleMain", new_name)
+        self._set_form_value('movepage', "wpReason", "moved using mediawiki client on " + datetime.datetime.now().isoformat())
+        self._set_form_value('movepage', "wpLeaveRedirect", leave_redirect)
+        self.twill_browser.submit("wpMove")
+
+
 
     def get_page_content(self, url):
         self.openurl(url)
@@ -327,6 +339,13 @@ class MediaWikiInteractiveCommands(Cmd):
         page_content = self.browser.get_page_content(url)
         print page_content
 
+    def mv(self, current_name, new_name, leave_redirect=True):
+        """
+        rename article
+        """
+        self.browser.rename_article(current_name, new_name, leave_redirect=leave_redirect)
+
+
 
     def append_to_article_and_open(self, page_name, text_to_append):
 
@@ -396,11 +415,14 @@ def run(args):
 
 
     if args['<article_name>']:
+
         if args['append']:
             if args['<text>']:
                 # append text to extisting article and save
                 text_to_append = args['<text>'].decode('utf8')
                 m.append_to_article_and_save(args['<article_name>'], text_to_append)
+        elif args["mv"]:
+            m.mv(args['<article_name>'], args['<new_name>'], args['--leave_redirect'])
         elif stdin_data is not None:
             stdin_data = stdin_data.decode('utf8')
             m.append_to_article_and_open(args['<article_name>'], stdin_data)
@@ -415,6 +437,9 @@ def run(args):
             interactive = True
     elif args['upload']:
             m.do_upload_file(args['<filepath>'], args['<alt_filename>'])
+    else:
+        interactive = True
+
 
     if interactive:
         # and go to interactive mode

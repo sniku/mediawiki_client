@@ -7,6 +7,7 @@ Usage:
   wiki_client [go] <article_name> < stdin_file.txt
   wiki_client append <article_name> <text>
   wiki_client cat <article_name>
+  wiki_client mv <article_name> <new_name> [--leave_redirect]
   wiki_client upload <filepath> [<alt_filename>]
   wiki_client --help
 """

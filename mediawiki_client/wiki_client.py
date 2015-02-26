@@ -322,8 +322,19 @@ class MediaWikiInteractiveCommands(Cmd):
         if old_content != new_content:
             self.browser.save_article(url, new_content)
 
-    def append_to_article_and_save(self, page_name, text_to_append):
+    def log_and_save(self, page_name, text_to_log):
+        """
+        Log is the same as append, but it adds a datetime in front of the text
+        """
+        now = u"{:%Y-%m-%d %H:%M} ".format(datetime.datetime.now())
+        text_to_log = now + text_to_log
+        self.append_to_article_and_save(page_name, text_to_log)
 
+
+    def append_to_article_and_save(self, page_name, text_to_append):
+        """
+        appends text to the bottom of an article and saves
+        """
         assert( type(text_to_append) == unicode )
 
         url = urlparse.urljoin(settings['mediawiki_url'], '/index.php?action=edit&title=' + urllib.quote_plus(page_name) )
@@ -393,7 +404,7 @@ class MediaWikiInteractiveCommands(Cmd):
         cmd = line.split()[0]
 
         if line.startswith('/'):
-            line = 'search ' +line[1:]
+            line = 'search ' + line[1:]
         elif cmd.isnumeric():
             line = 'display_search_result '+cmd
 
@@ -421,6 +432,10 @@ def run(args):
                 # append text to extisting article and save
                 text_to_append = args['<text>'].decode('utf8')
                 m.append_to_article_and_save(args['<article_name>'], text_to_append)
+        elif args['log']:
+            if args['<text>']:
+                text_to_log = args['<text>'].decode('utf8')
+                m.log_and_save(args['<article_name>'], text_to_log)
         elif args["mv"]:
             m.mv(args['<article_name>'], args['<new_name>'], args['--leave_redirect'])
         elif stdin_data is not None:
@@ -428,7 +443,7 @@ def run(args):
             m.append_to_article_and_open(args['<article_name>'], stdin_data)
         elif args['cat']:
             m.cat(args['<article_name>'])
-        elif args['<article_name>'][0] == "/": # search
+        elif args['<article_name>'][0] == "/":  # search
             m.do_search(args['<article_name>'][1:])
             interactive = True
         else:

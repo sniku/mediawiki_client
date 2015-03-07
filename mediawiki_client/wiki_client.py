@@ -7,6 +7,11 @@ import os
 import sys
 import datetime
 
+# temporary fix for SSL errors
+if sys.version_info >= (2, 7, 9):
+    import ssl
+    ssl._create_default_https_context = ssl._create_unverified_context
+
 from subprocess import call, Popen, PIPE
 import urllib
 import urlparse

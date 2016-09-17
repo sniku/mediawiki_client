@@ -1,3 +1,14 @@
+# mediawiki_client has been superseded by [PyWiki](https://github.com/sniku/pywiki).
+Stop reading this and go to [https://github.com/sniku/pywiki](https://github.com/sniku/pywiki)
+
+
+
+
+I'm leaving this repo here for historical reasons. 
+
+
+
+
 mediawiki_client
 ================
 
